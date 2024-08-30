@@ -36,8 +36,8 @@ public final class JSNoseExample {
 	private static boolean doClickOnce = true;         // true: click only once on each clickable, false: multiple click
 	
 	
-	//Target Application URL
-	private static final String URL = "http://127.0.0.1:8081/ptable/";
+	//	Target Application URL
+	private static final String URL = "http://localhost:8080/testapp/";
 
 	//Final selected experimental objects
 
@@ -79,7 +79,7 @@ public final class JSNoseExample {
 		CrawljaxConfiguration config = new CrawljaxConfiguration();
 		config.setCrawlSpecification(getCrawlSpecification());
 		config.setThreadConfiguration(getThreadConfiguration());
-		config.setBrowser(BrowserType.chrome);
+		config.setBrowser(BrowserType.firefox);
 
 			
 		// Amin: Create a Proxy for the purpose of code instrumentation
@@ -200,8 +200,8 @@ public final class JSNoseExample {
 			System.out.println("Missing Properties ... ");
 			System.exit(1);
 		}
-        String webdriver = p.getProperty("webdriver.chrome.driver");
-        System.setProperty("webdriver.chrome.driver", webdriver);
+        String webdriver = p.getProperty("webdriver.firefox.driver");
+        System.setProperty("webdriver.firefox.driver", webdriver);
 //		System.setProperty("webdriver.gecko.driver", p.getProperty("webdriver.gecko.driver"));
 
 

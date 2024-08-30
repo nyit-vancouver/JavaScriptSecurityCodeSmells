@@ -20,6 +20,8 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
+import org.apache.xml.serialize.*;
+
 import javax.xml.transform.OutputKeys;
 import javax.xml.transform.Result;
 import javax.xml.transform.Source;
@@ -758,9 +760,9 @@ public final class Helper {
 		transformer.setOutputProperty(OutputKeys.METHOD, method);
 
 		if (indent > -1) {
-			transformer.setOutputProperty(
-			        org.apache.xml.serializer.OutputPropertiesFactory.S_KEY_INDENT_AMOUNT,
-			        Integer.toString(indent));
+//			transformer.setOutputProperty(
+//			        org.apache.xml.serialize.OutputPropertiesFactory.S_KEY_INDENT_AMOUNT,
+//			        Integer.toString(indent));
 		}
 		transformer.transform(new DOMSource(document), new StreamResult(new FileOutputStream(
 		        filePathname)));

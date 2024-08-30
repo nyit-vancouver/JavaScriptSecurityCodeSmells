@@ -12,7 +12,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.apache.log4j.Logger;
-import org.openqa.selenium.ElementNotVisibleException;
+import org.openqa.selenium.ElementNotInteractableException;
 import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.NoSuchElementException;
 import org.openqa.selenium.NoSuchFrameException;
@@ -22,10 +22,14 @@ import org.openqa.selenium.TakesScreenshot;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebDriverException;
 import org.openqa.selenium.WebElement;
-import org.openqa.selenium.internal.WrapsDriver;
+import org.openqa.selenium.WrapsDriver;
 import org.openqa.selenium.io.FileHandler;
 import org.openqa.selenium.remote.Augmenter;
 import org.openqa.selenium.remote.DesiredCapabilities;
+import org.openqa.selenium.Capabilities;
+import org.openqa.selenium.MutableCapabilities;
+import org.openqa.selenium.chrome.ChromeOptions;
+import org.openqa.selenium.firefox.*;
 import org.openqa.selenium.remote.HttpCommandExecutor;
 import org.openqa.selenium.remote.RemoteWebDriver;
 import org.openqa.selenium.support.ui.Select;
@@ -295,12 +299,13 @@ public final class WebDriverBackedEmbeddedBrowser implements EmbeddedBrowser {
 			case click:
 				try {
 					webElement.click();
-				} catch (ElementNotVisibleException e1) {
+				}catch (WebDriverException e) {
+					throwIfConnectionException(e);
+					return false;
+				}
+				catch (Exception e1) {
 					LOGGER.info("Element not visible, so cannot be clicked: "
 					        + webElement.getTagName().toUpperCase() + " " + webElement.getText());
-					return false;
-				} catch (WebDriverException e) {
-					throwIfConnectionException(e);
 					return false;
 				}
 				break;

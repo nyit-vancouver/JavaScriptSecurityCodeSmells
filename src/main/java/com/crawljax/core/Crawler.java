@@ -5,12 +5,16 @@ import java.io.FileWriter;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.apache.log4j.Logger;
 
 import codesmells.JavaScriptObjectInfo;
 import codesmells.SmellDetector;
+import codesmells.SmellLocation;
 
 import com.crawljax.browser.EmbeddedBrowser;
 import com.crawljax.core.configuration.CrawljaxConfigurationReader;
@@ -538,6 +542,10 @@ public class Crawler implements Runnable {
 
 		// Amin: JSNose dynamic analysis
 		dynamicSmellAnalysis();
+		
+		jsonInjectionAnalysis();
+		
+		hardCodedSensitiveInfoCheck();
 		
 		// Store the currentState to be able to 'back-track' later.
 		StateVertix orrigionalState = this.getStateMachine().getCurrentState();
@@ -1171,6 +1179,187 @@ public class Crawler implements Runnable {
 			}
 		}
 	}
+	
+	public void jsonInjectionAnalysis() {
+		try{
+			
+			String jsCode = "function findInputFields() {" +
+                    "  const inputFields = document.querySelectorAll('input, textarea');" +
+                    "  const vulnerableFields = [];" +
+                    "  for (let i = 0; i < inputFields.length; i++) {" +
+                    "    const inputField = inputFields[i];" +
+                    "    const userInput = inputField.value;" +
+                    "    if (!isSafeJSON(userInput)) {" +
+                    "      vulnerableFields.push({ field: inputField.tagName, value: userInput });" +
+                    "    }" +
+                    "  }" +
+                    "  return vulnerableFields;" +
+                    "} " +
+                    "function isSafeJSON(data) {" +
+                    "  if (typeof data !== 'string') {" +
+                    "    return false;" +
+                    "  }" +
+                    "  try {" +
+                    "    JSON.parse(data);" +
+                    "    return true;" +
+                    "  } catch (e) {" +
+                    "    return false;" +
+                    "  }" +
+                    "} " +
+                    "findInputFields();"; // Execute findInputFields function
+
+			List<Map<String, Object>> result = (List<Map<String, Object>>) this.browser.executeJavaScript(jsCode);
+			
+			
+			System.out.println("********** JSON Injection DETECTION **********");
+			System.out.println("JSON Injection possible: " + result);
+
+			
+			
+		    if (result != null && result.size() > 0) {
+		        System.out.println("Potential JSON injection detected in the following input fields:");
+		        for (int i = 0; i < result.size(); i++) {
+		            Map<String, Object> fieldInfo = result.get(i);
+//		            System.out.println("[" + (i + 1) + "] Field: " + fieldInfo.get("field") + ", Value: " + fieldInfo.get("value"));
+		            SmellLocation sl = new SmellLocation("Long scope chain at function: " + "JsonInjection", (String) fieldInfo.get("field"),0);
+		            SmellDetector.jsonInjectionLocations.add(sl);
+		        }
+		    } else {
+		        System.out.println("No potential JSON injection detected in input fields.");
+		    }
+			
+
+		}catch (Exception e) {
+			LOGGER.info("Could not execute script");
+		}
+
+	}
+	
+	public void hardCodedSensitiveInfoCheck() {
+		
+		try {
+            
+			String input = "function findInputFields() {" +
+                    "  const inputFields = document.querySelectorAll('input, textarea');" +
+                    "  const vulnerableFields = [];" +
+                    "  for (let i = 0; i < inputFields.length; i++) {" +
+                    "    const inputField = inputFields[i];" +
+                    "    const userInput = inputField.value;" +
+                    "    if (!isSafeJSON(userInput)) {" +
+                    "      vulnerableFields.push({ field: inputField.tagName, value: userInput });" +
+                    "    }" +
+                    "  }" +
+                    "  return vulnerableFields;" +
+                    "} " +
+                    "function isSafeJSON(data) {" +
+                    "  if (typeof data !== 'string') {" +
+                    "    return false;" +
+                    "  }" +
+                    "  try {" +
+                    "    JSON.parse(data);" +
+                    "    return true;" +
+                    "  } catch (e) {" +
+                    "    return false;" +
+                    "  }" +
+                    "} " +
+                    "findInputFields();"; // Execute findInputFields function
+
+			List<Map<String, Object>> result = (List<Map<String, Object>>) this.browser.executeJavaScript(input);
+			
+            String sensPattern = "mongodb:\\/\\/(?:[^:\\s]*:[^@\\s]*@)?[^:\\s]*(?::\\d+)?(?:,[^:\\s]*(?::\\d+)?)*(?:\\/[^?\\s]*)?(?:\\?[^#\\s]*)?";
+
+            Pattern patCheck = Pattern.compile(sensPattern, Pattern.CASE_INSENSITIVE);
+            
+            if (result != null && result.size() > 0) {
+            
+            	for (int i = 0; i < result.size(); i++) {
+            	
+		            Matcher matchingCheck = patCheck.matcher((CharSequence) result.get(i));
+		
+		            List<String> matchList = new ArrayList<>();
+		
+		           
+		            while (matchingCheck.find()) {
+		            	matchList.add(matchingCheck.group());
+		            }
+		
+		
+		            System.out.println("********** Harcoded Sensitive Info Check **********");
+		            if (!matchList.isEmpty()) {
+		                System.out.println("Detected hard-coded MongoDB connection strings:");
+		                for (int j = 0; j < matchList.size(); j++) {
+		                    String match = matchList.get(j);
+		                    System.out.println("[" + (j + 1) + "] String of Connection: " + match);
+		
+		                    SmellLocation sl = new SmellLocation("Hard coded MongoDB connection string", match, 0);
+		                    SmellDetector.mongoLocations.add(sl);
+		                }
+		            } else {
+		                System.out.println("No hard-coded strings detected.");
+		            }
+            	}
+	            
+            }
+
+        } catch (Exception e) {
+        	LOGGER.info("Could not analyze for hard coded sensitive info");
+        }
+		
+	}
+	
+	public void detectWeakCryptography(String code) {
+        String[] weakMechanisms = {"MD5", "SHA-1", "DES", "RC4"};
+
+        List<String> algorithmsPresent = new ArrayList<>();
+
+        for (String mechanism : weakMechanisms) {
+            if (code.contains(mechanism)) {
+            	algorithmsPresent.add(mechanism);
+            }
+        }
+
+        System.out.println("********** Cryptography Detection of Weak **********");
+        if (!algorithmsPresent.isEmpty()) {
+            System.out.println("Weak algorithms present:");
+            for (int i = 0; i < algorithmsPresent.size(); i++) {
+                String algo = algorithmsPresent.get(i);
+                System.out.println("[" + (i + 1) + "] name of algo: " + algo);
+                SmellLocation sl = new SmellLocation("Used weak ", algo, 0);
+                SmellDetector.cryptographyErrors.add(sl);
+            }
+        } else {
+            System.out.println("Non present.");
+        }
+    }
+	
+	public void longPrototypeInheritanceAnalysis() {
+		try{
+			
+			String script = "const sourceCode = document.documentElement.outerHTML; " +
+                    "const lines = sourceCode.split('\\n'); " +
+                    "for (let i = 0; i < lines.length; i++) { " +
+                    "  const line = lines[i]; " +
+                    "  if (/\\.prototype\\s*=\\s*{/.test(line)) { " +
+                    "    console.log('Potential long prototype chain at line ' + (i + 1) + ':'); " +
+                    "    console.log(line.trim()); " +
+                    "  } " +
+                    "} " +
+                    "true;";
+    
+			
+			Object result = this.browser.executeJavaScript(script);
+			
+			
+			System.out.println("********** Long prototype Inheritance DETECTION **********");
+			System.out.println("Long prototype Inheritance possible: " + result);
+
+			
+		}catch (Exception e) {
+			LOGGER.info("Could not execute script");
+		}
+
+	}
+	
 
 	/**
 	 * Amin

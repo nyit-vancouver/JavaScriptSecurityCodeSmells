@@ -28,7 +28,7 @@ import com.crawljax.util.Helper;
  */
 public final class CrawljaxConfiguration {
 
-	private BrowserType browser = BrowserType.chrome;
+	private BrowserType browser = BrowserType.firefox;
 
 	private EmbeddedBrowserBuilder browserBuilder = new WebDriverBrowserBuilder();
 

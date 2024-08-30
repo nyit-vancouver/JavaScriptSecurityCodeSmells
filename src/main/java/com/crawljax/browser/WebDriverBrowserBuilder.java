@@ -2,13 +2,15 @@ package com.crawljax.browser;
 
 import java.util.List;
 
-import org.openqa.selenium.android.AndroidDriver;
+import org.openqa.selenium.WebDriver;
+//import org.openqa.selenium.android.AndroidDriver;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.firefox.FirefoxDriver;
+import org.openqa.selenium.firefox.FirefoxOptions;
 import org.openqa.selenium.firefox.FirefoxProfile;
-import org.openqa.selenium.htmlunit.HtmlUnitDriver;
+//import org.openqa.selenium.htmlunit.HtmlUnitDriver;
 import org.openqa.selenium.ie.InternetExplorerDriver;
-import org.openqa.selenium.iphone.IPhoneDriver;
+//import org.openqa.selenium.iphone.IPhoneDriver;
 
 import com.crawljax.core.configuration.CrawljaxConfigurationReader;
 
@@ -51,7 +53,10 @@ public class WebDriverBrowserBuilder implements EmbeddedBrowserBuilder {
 					/* use proxy for everything, including localhost */
 					profile.setPreference("network.proxy.no_proxies_on", "");
 
-					return WebDriverBackedEmbeddedBrowser.withDriver(new FirefoxDriver(profile),
+					FirefoxOptions options = new FirefoxOptions();
+			        options.setProfile(profile);
+			        WebDriver driver = new FirefoxDriver(options);
+					return WebDriverBackedEmbeddedBrowser.withDriver(driver,
 					        filterAttributes, crawlWaitReload, crawlWaitEvent);
 				}
 
@@ -78,28 +83,28 @@ public class WebDriverBrowserBuilder implements EmbeddedBrowserBuilder {
 				        configuration.getCrawlSpecificationReader().getWaitAfterEvent(),
 				        configuration.getCrawlSpecificationReader().getWaitAfterReloadUrl());
 
-			case htmlunit:
-				return WebDriverBackedEmbeddedBrowser.withDriver(new HtmlUnitDriver(true),
-				        configuration.getFilterAttributeNames(), configuration
-				                .getCrawlSpecificationReader().getWaitAfterEvent(), configuration
-				                .getCrawlSpecificationReader().getWaitAfterReloadUrl());
-
-			case iphone:
-				try {
-					return WebDriverBackedEmbeddedBrowser.withDriver(new IPhoneDriver(),
-					        configuration.getFilterAttributeNames(), configuration
-					                .getCrawlSpecificationReader().getWaitAfterEvent(),
-					        configuration.getCrawlSpecificationReader().getWaitAfterReloadUrl());
-				} catch (Exception e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}
-
-			case android:
-				return WebDriverBackedEmbeddedBrowser.withDriver(new AndroidDriver(),
-				        configuration.getFilterAttributeNames(), configuration
-				                .getCrawlSpecificationReader().getWaitAfterEvent(), configuration
-				                .getCrawlSpecificationReader().getWaitAfterReloadUrl());
+//			case htmlunit:
+//				return WebDriverBackedEmbeddedBrowser.withDriver(new HtmlUnitDriver(true),
+//				        configuration.getFilterAttributeNames(), configuration
+//				                .getCrawlSpecificationReader().getWaitAfterEvent(), configuration
+//				                .getCrawlSpecificationReader().getWaitAfterReloadUrl());
+//
+//			case iphone:
+//				try {
+//					return WebDriverBackedEmbeddedBrowser.withDriver(new IPhoneDriver(),
+//					        configuration.getFilterAttributeNames(), configuration
+//					                .getCrawlSpecificationReader().getWaitAfterEvent(),
+//					        configuration.getCrawlSpecificationReader().getWaitAfterReloadUrl());
+//				} catch (Exception e) {
+//					// TODO Auto-generated catch block
+//					e.printStackTrace();
+//				}
+//
+//			case android:
+//				return WebDriverBackedEmbeddedBrowser.withDriver(new AndroidDriver(),
+//				        configuration.getFilterAttributeNames(), configuration
+//				                .getCrawlSpecificationReader().getWaitAfterEvent(), configuration
+//				                .getCrawlSpecificationReader().getWaitAfterReloadUrl());
 
 			default:
 				return WebDriverBackedEmbeddedBrowser.withDriver(new FirefoxDriver(),

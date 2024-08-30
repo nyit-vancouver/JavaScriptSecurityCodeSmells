@@ -8,6 +8,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 
 import org.mozilla.javascript.Token;
 import org.mozilla.javascript.ast.*;
@@ -63,6 +64,9 @@ public class SmellDetector {
 	
 	
 	private boolean CatchClause = false;	// To detect empty Catch Clauses
+	
+	private boolean JsonInjection = false;	// To detect JSON Injection
+	
 	private static HashSet<SmellLocation> emptyCatchFound = new HashSet<SmellLocation>();	// keeping line number where an empty catch occurred
 
 	private static HashSet<SmellLocation> longMethodFound = new HashSet<SmellLocation>();	// keeping line number where a long method is defined
@@ -89,11 +93,36 @@ public class SmellDetector {
 		for (String g: globals)
 			SmellDetector.globals.add(g);
 	}
+	
+	
+//	private static List<Map<String, Object>> jsonInjectionLocations = new ArrayList<>();	// JSON Injection Locations
+//	
+//	public static void setJsonInjectionLocations(List<Map<String, Object>> locations) {
+//		jsonInjectionLocations = locations;
+//	}
+	
 
 	
 	private static HashSet<SmellLocation> refusedBequestObjLocation = new HashSet<SmellLocation>();	// keeping objects which refuse bequests
 
 	private static HashSet<SmellLocation> lazyObjectsLocation = new HashSet<SmellLocation>();	// keeping lazy objects
+	
+	public static HashSet<SmellLocation> jsonInjectionLocations = new HashSet<SmellLocation>();	// keeping jsonInjectionLocations
+	
+	public static List<SmellLocation> mongoLocations = new ArrayList<>(); // keeping Hardcoded sensitive info locations
+	
+	public static List<SmellLocation> cryptographyErrors = new ArrayList<>();
+	
+	
+	private static HashSet<SmellLocation> hardCodedCredsLocations = new HashSet<SmellLocation>();	// HardCoded Locations
+	
+	private static HashSet<SmellLocation> defaultCaseLocations = new HashSet<SmellLocation>();	// Default Case Locations
+	
+	private static HashSet<SmellLocation> documentWrite = new HashSet<SmellLocation>();	// Document write Locations
+	
+	private static HashSet<SmellLocation> prototypePollute = new HashSet<SmellLocation>();	// Prototype Pollute Locations
+	
+	private static HashSet<SmellLocation> cookieProtect = new HashSet<SmellLocation>();	// Prototype Pollute Locations
 
 	private static HashSet<SmellLocation> largeObjectsLocation = new HashSet<SmellLocation>();	// keeping large objects
 	
@@ -227,6 +256,23 @@ public class SmellDetector {
 		System.out.println("********** UNREACHABLE CODE **********");
 		reportSmell(unReachable);
 		
+		System.out.println("********** JSON Injections **********");
+		reportSmell(jsonInjectionLocations);
+		
+		System.out.println("********** Hard Coded Credentials **********");
+		reportSmell(hardCodedCredsLocations);
+		
+		System.out.println("********** Default Cases Missing **********");
+		reportSmell(defaultCaseLocations);
+		
+		System.out.println("********** Document.Write instances **********");
+		reportSmell(documentWrite);
+		
+		System.out.println("********** Prototype Pollute **********");
+		reportSmell(prototypePollute);
+		
+		System.out.println("********** Protection of Cookies **********");
+		reportSmell(cookieProtect);
 		
 		//System.out.println("********** OBJECT LIST **********");
 		//for (JavaScriptObjectInfo o: jsObjects)
@@ -248,9 +294,7 @@ public class SmellDetector {
 			report += "Item: " + l.getSmellyItemName() + " in JS file: " + l.getJsFile() +" at line number: " + l.getLineNumber() + "\n";
 		}
 		return report;
-	}	
-	
-
+	}
 	
 	
 	
@@ -447,6 +491,7 @@ public class SmellDetector {
 	 */
 	public void analyseAstNode() {
 	
+		System.out.println("analyseAstNode() is executed");
 		String ASTNodeName = ASTNode.shortName();
 		int type = ASTNode.getType();
 		int ASTDepth = ASTNode.depth();
@@ -1215,6 +1260,25 @@ public class SmellDetector {
 
 			out.write("********** UNREACHABLE CODE **********\n");
 			out.write(reportSmell(unReachable));
+			
+			out.write("********** JSON Injection **********\n");
+			out.write(reportSmell(jsonInjectionLocations));
+			
+			out.write("********** Hard Coded Credentials **********\n");
+			out.write(reportSmell(hardCodedCredsLocations));
+			
+			out.write("********** Default Case Missing **********\n");
+			out.write(reportSmell(defaultCaseLocations));
+			
+			out.write("********** Document.write instances **********\n");
+			out.write(reportSmell(documentWrite));
+			
+			out.write("********** Prototype Pollute **********\n");
+			out.write(reportSmell(prototypePollute));
+			
+			out.write("********** Protection of Cookies **********\n");
+			out.write(reportSmell(cookieProtect));
+		
 
 			out.close();
 		}
@@ -1255,7 +1319,114 @@ public class SmellDetector {
 		}
 
 	}
+	
+	/* Code to check JSON Injections */
+//	private void checkJSONInjection(JavaScriptObjectInfo jsObject) {
+//		
+//		for (JavaScriptObjectInfo jso : jsObjects){
+//			SmellLocation sl;
+//			ArrayList<String> ownProp = jso.getOwnPropetries();
+//			if(ownProp.contains("’\"")) {
+//				sl = new SmellLocation(jso.getName(),jso.getJsFileName(),jso.getLineNumber());
+//				jsonInjectionLocations.add(sl);
+//			}
+//		}
+//
+//	}
+	
+	/* Code to check Hard Coded sensitive information */
+	private void checkForHardCodedSensitiveInfo(JavaScriptObjectInfo jsObject) {
+		ArrayList<String> mostUsedVarNames = new ArrayList<String>();
+		mostUsedVarNames.add("uname");
+		mostUsedVarNames.add("passwd");
+		mostUsedVarNames.add("pass");
+		mostUsedVarNames.add("username");
+		mostUsedVarNames.add("password");
+		mostUsedVarNames.add("loginkey");
+		for (JavaScriptObjectInfo jso : jsObjects){
+			SmellLocation sl;
+			ArrayList<String> ownProp = jso.getOwnPropetries();
+			for(int i = 0; i < ownProp.size(); i++)
+			{
+				String s = ownProp.get(i);
+				if(mostUsedVarNames.contains(s))
+				{
+					String hardCode = jso.getUsedPropetries().get(i);
+					if (hardCode.contains("\"") || hardCode.contains("\'")) {
+						sl = new SmellLocation(jso.getName(), jso.getJsFileName(), jso.getLineNumber());
+						hardCodedCredsLocations.add(sl);
+					}
+				}
+			}
+		}
 
+	}
+	
+	/* Code to check JSON Injections */
+	private void checkDefaultCase(JavaScriptObjectInfo jsObject) {
+		
+		for (JavaScriptObjectInfo jso : jsObjects){
+			SmellLocation sl;
+			ArrayList<String> ownProp = jso.getOwnPropetries();
+			if(ownProp.contains("Switch") && !ownProp.contains("Default")) {
+				sl = new SmellLocation(jso.getName(),jso.getJsFileName(),jso.getLineNumber());
+				defaultCaseLocations.add(sl);
+			}
+		}
+
+	}
+	
+	/* Code to check Document write */
+	private void checkUseOfDocWrite(JavaScriptObjectInfo jsObject) {
+		
+		for (JavaScriptObjectInfo jso : jsObjects){
+			SmellLocation sl;
+			ArrayList<String> ownProp = jso.getOwnPropetries();
+			if(ownProp.contains("document.write")) {
+				sl = new SmellLocation(jso.getName(),jso.getJsFileName(),jso.getLineNumber());
+				documentWrite.add(sl);
+			}
+		}
+
+	}
+	
+	/* Code to check Prototype Pollution */
+	private void checkPrototypePollution(JavaScriptObjectInfo jsObject) {
+		
+		for (JavaScriptObjectInfo jso : jsObjects){
+			SmellLocation sl;
+			ArrayList<String> ownProp = jso.getOwnPropetries();
+			for(int i = 0; i < ownProp.size(); i++)
+			{
+				String s = ownProp.get(i);
+				String propertyValue = jso.getUsedPropetries().get(i);
+				if(propertyValue.contains("prototype")) {
+					sl = new SmellLocation(jso.getName(),jso.getJsFileName(),jso.getLineNumber());
+					prototypePollute.add(sl);
+				}
+			}
+		}
+
+	}
+	
+	/* Code to check Protection of Cookies */
+	private void cookieProtect(JavaScriptObjectInfo jsObject) {
+		
+		for (JavaScriptObjectInfo jso : jsObjects){
+			SmellLocation sl;
+			ArrayList<String> ownProp = jso.getOwnPropetries();
+			for(int i = 0; i < ownProp.size(); i++)
+			{
+				String s = ownProp.get(i);
+				String propertyValue = jso.getUsedPropetries().get(i);
+				if(propertyValue.contains("cookie")) {
+					sl = new SmellLocation(jso.getName(),jso.getJsFileName(),jso.getLineNumber());
+					cookieProtect.add(sl);
+				}
+			}
+		}
+
+	}
 
 }
 

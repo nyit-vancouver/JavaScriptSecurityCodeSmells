@@ -1,5 +1,7 @@
-Using JSNose to detect JavaScript security code smells
-======
+# Characterizing JavaScript Security Code Smells
+JavaScript has been consistently among the most popular programming languages in the past decade. However, its dynamic, weakly-typed, and asynchronous nature can make it challenging to write maintainable code for developers without in-depth knowledge of the language. Consequently, many JavaScript applications tend to contain code smells that adversely influence program comprehension, maintenance, and debugging. Due to the widespread usage of JavaScript, code security is an important matter. While JavaScript code smells and detection techniques have been studied in the past, current work on security smells for JavaScript is scarce. Security code smells are coding patterns indicative of potential vulnerabilities or security weaknesses. Identifying security code smells can help developers to focus on areas where additional security measures may be needed. We present a set of 24 JavaScript security code smells, map them to a possible security awareness defined by Common Weakness Enumeration (CWE), explain possible refactoring, and explain our detection mechanism. We implement our security code smell detection on top of an existing open source tool that was proposed to detect general code smells in JavaScript.
+
+
 
 [JSNose](https://github.com/saltlab/JSNose) is a JavaScript code smell detector tool written in Java. We have extended the tool to detect security code semlls in JavaScript:
 
@@ -33,6 +35,19 @@ Using JSNose to detect JavaScript security code smells
 | Error Handling Disclosure          | CWE-209 (Generation of Error Message Containing Sensitive Information), CWE-497 (Exposure of Sensitive System Information to an Unauthorized Control Sphere) | Improper Error Handling                                     |
 
 
+# Paper
+V. Kambhampati, N. H. Mohammed, A. Milani Fard., ["Characterizing JavaScript Security Code Smells”](https://arxiv.org/pdf/2411.19358), arXiv preprint arXiv:2411.19358, 2024.
+
+
+# Citation
+```
+@article{2024characterizing,
+author={Kambhampati, Vikas and Mohammed, Nehaz Hussain and Milani Fard, Amin},
+title={Characterizing JavaScript Security Code Smells},
+journal={arXiv preprint arXiv:2411.19358},
+year = {2024}
+}
+```
 
 
 Original JSNose Paper
